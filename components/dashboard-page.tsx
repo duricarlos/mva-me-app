@@ -62,6 +62,23 @@ export function DashboardPage() {
 
   console.log("Assigned Zone:", assignedZone)
   console.log("Assigned Points:", assignedPoints) 
+
+
+  if (!assignedZone || assignedPoints.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-6 mb-4">
+            <h2 className="text-xl font-semibold text-yellow-400 mb-2">Zona o puntos no asignados</h2>
+            <p className="text-gray-300">No tienes zonas o puntos de venta asignados actualmente.</p>
+          </div>
+          <SignOutButton>
+            <Button variant="secondary">Salir</Button>
+          </SignOutButton>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
       {/* Header */}
