@@ -1,6 +1,70 @@
 # MVA-ME App - Sistema de Gestión de Vendedores
 
-Una aplicación web completa para la gestión de vendedores y puntos de venta, construida con Next.js, Clerk para autenticación y Strapi como CMS.
+Una aplicación web completa para la gestión de vendedores y puntos de venta con **geolocalización en tiempo real**, construida con Next.js, Clerk para autenticación y Strapi como CMS.
+
+## 🚀 Funcionalidades Principales
+
+### 🗺️ **Sistema de Mapas Interactivos**
+
+- **Visualización de zonas asignadas** con polígonos GeoJSON
+- **Puntos de venta interactivos** con información detallada
+- **Mapas responsive** optimizados para móvil y escritorio
+- **Controles de navegación** personalizados
+- **Marcadores dinámicos** con información en tiempo real
+
+### 📍 **Geolocalización en Tiempo Real**
+
+- **Solicitud automática de permisos** de ubicación del navegador
+- **Verificación cada 5 segundos** si el vendedor está dentro de su zona
+- **Algoritmo de geofencing** usando ray casting para polígonos complejos
+- **Feedback visual en tiempo real**:
+  - 🟢 **Verde**: Dentro de la zona asignada
+  - 🔴 **Rojo**: Fuera de la zona asignada
+  - 🟡 **Amarillo**: Verificando ubicación
+- **Cambio de color dinámico** de la zona en el mapa
+- **Indicadores de estado** con timestamps de última verificación
+- **Manejo de errores** de geolocalización con mensajes informativos
+
+### 👤 **Gestión de Vendedores**
+
+- ✅ **Registro e inicio de sesión seguro** con Clerk
+- ✅ **Dashboard personalizado** con información específica del vendedor
+- ✅ **Perfil de vendedor** con datos personales y estado de activación
+- ✅ **Asignación de zonas** y puntos de venta específicos
+- ✅ **Control de acceso** basado en roles y permisos
+
+### 🎯 **Puntos de Venta**
+
+- ✅ **Lista detallada** de puntos asignados al vendedor
+- ✅ **Información completa**: nombre, dirección, tipo, coordenadas
+- ✅ **Clasificación por tipo**: Distribuidor, Ferretería, Depósito
+- ✅ **Búsqueda y filtrado** de puntos (versión escritorio)
+- ✅ **Selección interactiva** con sincronización mapa-lista
+
+### 📱 **Interfaz de Usuario**
+
+- ✅ **Diseño responsive** optimizado para móvil y escritorio
+- ✅ **Tema oscuro** con gradientes y efectos visuales modernos
+- ✅ **Animaciones fluidas** y transiciones suaves
+- ✅ **Componentes reutilizables** con shadcn/ui
+- ✅ **Estados de carga** y manejo de errores elegante
+
+### 🔧 **Panel de Administración**
+
+- ✅ **Gestión completa** desde panel Strapi
+- ✅ **Creación y edición** de zonas de venta con coordenadas GeoJSON
+- ✅ **Gestión de puntos de venta** con geolocalización
+- ✅ **Control de activación** de vendedores
+- ✅ **Vinculación automática** con cuentas de Clerk
+- ✅ **API tokens** para acceso seguro a datos
+
+### 🛡️ **Seguridad y Autenticación**
+
+- ✅ **Autenticación segura** con Clerk
+- ✅ **Protección de rutas** y API endpoints
+- ✅ **Validación de permisos** por rol de usuario
+- ✅ **Tokens seguros** para comunicación con Strapi
+- ✅ **Manejo seguro** de datos de ubicación
 
 ## 📄 Licencia
 
@@ -51,8 +115,10 @@ Las contribuciones son bienvenidas. Al contribuir, aceptas que tu código se lic
 - **Frontend**: Next.js 15 + TypeScript + Tailwind CSS
 - **Autenticación**: Clerk
 - **CMS**: Strapi
-- **Mapas**: MapLibre GL
+- **Mapas**: MapLibre GL con geolocalización en tiempo real
 - **UI**: shadcn/ui components
+- **Geolocalización**: Navigator Geolocation API
+- **Algoritmos**: Ray casting para geofencing de polígonos
 
 ## Configuración del Proyecto
 
@@ -102,9 +168,13 @@ npm run dev
 
 - ✅ Registro e inicio de sesión seguro
 - ✅ Dashboard personalizado con mapa interactivo
-- ✅ Visualización de zonas asignadas
-- ✅ Lista de puntos de venta con detalles
-- ✅ Interfaz responsive (móvil y escritorio)
+- ✅ **Geolocalización en tiempo real** con verificación de zona
+- ✅ **Feedback visual** del estado de ubicación (dentro/fuera de zona)
+- ✅ Visualización de zonas asignadas con **cambio de color dinámico**
+- ✅ Lista de puntos de venta con detalles completos
+- ✅ **Interfaz responsive** optimizada para móvil y escritorio
+- ✅ **Indicadores de estado** con timestamps de verificación
+- ✅ **Manejo de errores** de geolocalización con mensajes informativos
 
 ### Para Administradores
 
@@ -114,7 +184,42 @@ npm run dev
 - ✅ Control de activación de vendedores
 - ✅ Vinculación con cuentas de Clerk
 
-## API Endpoints
+## 🌍 Sistema de Geolocalización
+
+### Características Técnicas
+
+- **Algoritmo de Geofencing**: Implementación de ray casting para verificar si un punto está dentro de un polígono GeoJSON
+- **Precisión**: Alta precisión con `enableHighAccuracy: true`
+- **Frecuencia**: Verificación cada 5 segundos
+- **Timeout**: 10 segundos máximo para obtener ubicación
+- **Cache**: Máximo 5 segundos de antigüedad para datos de ubicación
+
+### Estados de Ubicación
+
+| Estado | Color | Descripción |
+|--------|--------|-------------|
+| 🟡 Verificando | Amarillo (`#FFC300`) | Solicitando permisos o obteniendo ubicación |
+| 🟢 En zona | Verde (`#22C55E`) | Vendedor dentro de su zona asignada |
+| 🔴 Fuera de zona | Rojo (`#EF4444`) | Vendedor fuera de su zona asignada |
+
+### Manejo de Errores
+
+- **Permisos denegados**: Mensaje informativo al usuario
+- **Timeout de ubicación**: Reintento automático en próxima verificación
+- **Precisión baja**: Manejo automático con configuración optimizada
+- **Sin conexión**: Mantiene último estado conocido
+
+## 🔌 API Endpoints
+
+### `GET /api/seller/profile`
+
+Obtiene el perfil completo del vendedor autenticado, incluyendo:
+
+- Información del perfil
+- Zonas de venta asignadas
+- Puntos de venta asignados
+
+**Autenticación**: Requerida (Clerk)
 
 ### `GET /api/seller/profile`
 
@@ -150,7 +255,70 @@ Los datos de ejemplo están en `lib/data.ts` y pueden usarse para testing inicia
 3. **Variables**: Configurar variables de entorno en producción
 4. **DNS**: Actualizar URLs en configuración de Clerk
 
-## Soporte
+## 📋 Resumen de Funcionalidades Implementadas
+
+### ✅ **Completadas y Funcionales**
+
+#### 🗺️ **Sistema de Mapas**
+
+- Mapas interactivos con MapLibre GL
+- Visualización de zonas de venta (polígonos GeoJSON)
+- Marcadores de puntos de venta interactivos
+- Controles de navegación personalizados
+- Diseño responsive para móvil y escritorio
+
+#### 📍 **Sistema de Geolocalización**
+
+- Solicitud automática de permisos de ubicación
+- Verificación cada 5 segundos de ubicación del vendedor
+- Algoritmo de geofencing con ray casting
+- Cambio de color dinámico de zonas según ubicación
+- Indicadores visuales de estado (Verde/Rojo/Amarillo)
+- Timestamps de última verificación
+- Manejo robusto de errores de geolocalización
+
+#### 👤 **Autenticación y Perfiles**
+
+- Sistema de autenticación seguro con Clerk
+- Dashboard personalizado por vendedor
+- Gestión de perfiles con Strapi
+- Control de acceso basado en roles
+- Vinculación automática Clerk-Strapi
+
+#### 🎯 **Gestión de Puntos de Venta**
+
+- Lista detallada de puntos asignados
+- Información completa (nombre, dirección, tipo, coordenadas)
+- Clasificación por tipo (Distribuidor, Ferretería, Depósito)
+- Sincronización entre mapa y lista
+- Búsqueda y filtrado (versión escritorio)
+
+#### 🎨 **Interfaz de Usuario**
+
+- Diseño moderno con tema oscuro
+- Componentes reutilizables con shadcn/ui
+- Animaciones y transiciones fluidas
+- Estados de carga elegantes
+- Responsive design optimizado
+
+#### 🔧 **Administración**
+
+- Gestión completa desde Strapi
+- Creación y edición de zonas con GeoJSON
+- Gestión de puntos de venta
+- Control de activación de vendedores
+- API tokens seguros
+
+### 🚀 **Tecnologías Core**
+
+- **Frontend**: Next.js 15 + TypeScript + Tailwind CSS
+- **Autenticación**: Clerk
+- **Backend**: Strapi CMS
+- **Mapas**: MapLibre GL
+- **Geolocalización**: Navigator Geolocation API
+- **UI**: shadcn/ui components
+
+## 📞 Soporte
 
 Para problemas o preguntas, consulta:
 
