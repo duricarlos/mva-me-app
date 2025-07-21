@@ -11,6 +11,7 @@ interface MapComponentProps {
   selectedPoint?: SalesPoint | null
   onPointSelect?: (point: SalesPoint) => void
   className?: string
+  zoneColor?: string // Nuevo prop para el color de la zona
 }
 
 export function MapComponent({
@@ -19,6 +20,7 @@ export function MapComponent({
   selectedPoint,
   onPointSelect,
   className = "",
+  zoneColor = "#FFC300",
 }: MapComponentProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
@@ -55,6 +57,11 @@ export function MapComponent({
     map.current.on("load", () => {
       setMapLoaded(true)
       console.log("Mapa cargado correctamente")
+      
+      // Exponer la instancia del mapa globalmente para permitir cambios externos
+      if (typeof window !== 'undefined') {
+        (window as any).mapInstance = map.current; // eslint-disable-line @typescript-eslint/no-explicit-any
+      }
     })
 
     map.current.on("error", (e) => {
@@ -94,7 +101,7 @@ export function MapComponent({
         type: "fill",
         source: "sales-zone",
         paint: {
-          "fill-color": "#FFC300",
+          "fill-color": zoneColor,
           "fill-opacity": 0.2,
         },
       })
@@ -105,12 +112,24 @@ export function MapComponent({
         type: "line",
         source: "sales-zone",
         paint: {
-          "line-color": "#FFC300",
+          "line-color": zoneColor,
           "line-width": 2,
         },
       })
     }
-  }, [mapLoaded, salesZone])
+  }, [mapLoaded, salesZone, zoneColor])
+
+  // Efecto para actualizar el color de la zona cuando cambie
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    
+    if (map.current.getLayer('sales-zone-fill')) {
+      map.current.setPaintProperty('sales-zone-fill', 'fill-color', zoneColor);
+    }
+    if (map.current.getLayer('sales-zone-line')) {
+      map.current.setPaintProperty('sales-zone-line', 'line-color', zoneColor);
+    }
+  }, [zoneColor, mapLoaded]);
 
   // Agregar puntos de venta
   useEffect(() => {

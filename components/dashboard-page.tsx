@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { SignOutButton } from '@clerk/nextjs'
 import type { SalesPoint } from "@/lib/types"
 import { MapComponent } from "./map-component"
@@ -10,8 +10,107 @@ import { useSellerData } from "@/lib/use-seller-data"
 
 export function DashboardPage() {
   const [selectedPoint, setSelectedPoint] = useState<SalesPoint | null>(null)
+  const [locationStatus, setLocationStatus] = useState<{
+    isInside: boolean | null
+    lastCheck: Date | null
+    error: string | null
+  }>({
+    isInside: null,
+    lastCheck: null,
+    error: null
+  })
   const { data, loading, error } = useSellerData()
 
+  // Función para verificar si un punto está dentro de un polígono (algoritmo ray casting)
+  const pointInPolygon = (point: [number, number], polygon: [number, number][][]): boolean => {
+    const [x, y] = point;
+    let inside = false;
+    
+    // Usar el primer anillo del polígono (exterior)
+    const ring = polygon[0];
+    
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i];
+      const [xj, yj] = ring[j];
+      
+      if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+        inside = !inside;
+      }
+    }
+    
+    return inside;
+  };
+
+  // Hook de geolocalización - debe estar antes de cualquier return condicional
+  useEffect(() => {
+    if (!data?.salesZones?.[0]) return;
+
+    const assignedZone = data.salesZones[0];
+
+    const checkLocation = () => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log("Ubicación actual:", { latitude, longitude });
+          console.log("Coordenadas de zona:", assignedZone.coordinates);
+          
+          // Verificar si está dentro del polígono
+          const isInsideZone = pointInPolygon([longitude, latitude], assignedZone.coordinates);
+          
+          console.log("¿Está dentro de la zona?", isInsideZone);
+          
+          setLocationStatus({
+            isInside: isInsideZone,
+            lastCheck: new Date(),
+            error: null
+          });
+
+          // Cambiar color de la zona en el mapa
+          setTimeout(() => {
+            const fillLayer = document.querySelector('.maplibregl-canvas-container');
+            if (fillLayer) {
+              // Intentar cambiar el estilo del mapa
+              const mapInstance = (window as any).mapInstance; // eslint-disable-line @typescript-eslint/no-explicit-any
+              if (mapInstance && mapInstance.getLayer && mapInstance.getLayer('sales-zone-fill')) {
+                mapInstance.setPaintProperty(
+                  'sales-zone-fill',
+                  'fill-color',
+                  isInsideZone ? '#FFC300' : '#FF0000'
+                );
+                mapInstance.setPaintProperty(
+                  'sales-zone-line',
+                  'line-color',
+                  isInsideZone ? '#FFC300' : '#FF0000'
+                );
+              }
+            }
+          }, 100);
+        },
+        (error) => {
+          console.error("Error al obtener la ubicación:", error);
+          setLocationStatus(prev => ({
+            ...prev,
+            error: `Error de geolocalización: ${error.message}`
+          }));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 5000
+        }
+      );
+    };
+
+    // Verificar ubicación inmediatamente
+    checkLocation();
+
+    // Configurar verificación periódica cada 5 segundos
+    const interval = setInterval(checkLocation, 5000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [data?.salesZones]);
 
   if (loading) {
     return (
@@ -64,6 +163,13 @@ export function DashboardPage() {
   console.log("Assigned Points:", assignedPoints) 
 
 
+  // Calcular color de zona basado en ubicación
+  const zoneColor = locationStatus.isInside === null 
+    ? "#FFC300" 
+    : locationStatus.isInside 
+      ? "#22C55E" 
+      : "#EF4444";
+
   if (!assignedZone || assignedPoints.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white flex items-center justify-center">
@@ -79,6 +185,7 @@ export function DashboardPage() {
       </div>
     )
   }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
       {/* Header */}
@@ -118,6 +225,7 @@ export function DashboardPage() {
             selectedPoint={selectedPoint}
             onPointSelect={setSelectedPoint}
             className="h-full"
+            zoneColor={zoneColor}
           />
 
           {/* Floating stats */}
@@ -129,6 +237,30 @@ export function DashboardPage() {
             <div className="bg-gray-900/80 backdrop-blur-md rounded-lg px-3 py-2 border border-gray-700/50">
               <p className="text-xs text-gray-400">Puntos</p>
               <p className="text-sm font-semibold text-yellow-400">{assignedPoints.length}</p>
+            </div>
+            {/* Estado de ubicación */}
+            <div className={`bg-gray-900/80 backdrop-blur-md rounded-lg px-3 py-2 border ${
+              locationStatus.isInside === null 
+                ? 'border-gray-700/50' 
+                : locationStatus.isInside 
+                  ? 'border-green-500/50' 
+                  : 'border-red-500/50'
+            }`}>
+              <p className="text-xs text-gray-400">Ubicación</p>
+              <p className={`text-sm font-semibold ${
+                locationStatus.isInside === null 
+                  ? 'text-gray-400' 
+                  : locationStatus.isInside 
+                    ? 'text-green-400' 
+                    : 'text-red-400'
+              }`}>
+                {locationStatus.isInside === null 
+                  ? 'Verificando...' 
+                  : locationStatus.isInside 
+                    ? 'En zona' 
+                    : 'Fuera de zona'
+                }
+              </p>
             </div>
           </div>
         </div>
@@ -179,6 +311,7 @@ export function DashboardPage() {
             selectedPoint={selectedPoint}
             onPointSelect={setSelectedPoint}
             className="h-full"
+            zoneColor={zoneColor}
           />
 
           {/* Desktop stats overlay */}
@@ -190,6 +323,49 @@ export function DashboardPage() {
             <div className="bg-gray-900/80 backdrop-blur-md rounded-lg p-3 border border-gray-700/50 shadow-lg">
               <p className="text-xs text-gray-400 mb-1">Total Puntos</p>
               <p className="text-lg font-bold text-yellow-400">{assignedPoints.length}</p>
+            </div>
+            {/* Estado de ubicación */}
+            <div className={`bg-gray-900/80 backdrop-blur-md rounded-lg p-3 border shadow-lg ${
+              locationStatus.isInside === null 
+                ? 'border-gray-700/50' 
+                : locationStatus.isInside 
+                  ? 'border-green-500/50' 
+                  : 'border-red-500/50'
+            }`}>
+              <p className="text-xs text-gray-400 mb-1">Estado de Ubicación</p>
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${
+                  locationStatus.isInside === null 
+                    ? 'bg-gray-400' 
+                    : locationStatus.isInside 
+                      ? 'bg-green-400' 
+                      : 'bg-red-400'
+                }`} />
+                <p className={`text-sm font-semibold ${
+                  locationStatus.isInside === null 
+                    ? 'text-gray-400' 
+                    : locationStatus.isInside 
+                      ? 'text-green-400' 
+                      : 'text-red-400'
+                }`}>
+                  {locationStatus.isInside === null 
+                    ? 'Verificando ubicación...' 
+                    : locationStatus.isInside 
+                      ? 'Dentro de la zona' 
+                      : 'Fuera de la zona'
+                  }
+                </p>
+              </div>
+              {locationStatus.lastCheck && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Última verificación: {locationStatus.lastCheck.toLocaleTimeString()}
+                </p>
+              )}
+              {locationStatus.error && (
+                <p className="text-xs text-red-400 mt-1">
+                  {locationStatus.error}
+                </p>
+              )}
             </div>
           </div>
         </div>
