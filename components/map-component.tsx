@@ -6,17 +6,21 @@ import "maplibre-gl/dist/maplibre-gl.css"
 import type { SalesPoint, SalesZone } from "@/lib/types"
 
 interface MapComponentProps {
-  salesPoints: SalesPoint[]
-  salesZone: SalesZone
+  assignedPoints: SalesPoint[]
+  allPoints: SalesPoint[]
+  assignedZones: SalesZone[]
+  allZones: SalesZone[]
   selectedPoint?: SalesPoint | null
   onPointSelect?: (point: SalesPoint) => void
   className?: string
-  zoneColor?: string // Nuevo prop para el color de la zona
+  zoneColor?: string // Color para las zonas asignadas
 }
 
 export function MapComponent({
-  salesPoints,
-  salesZone,
+  assignedPoints,
+  allPoints,
+  assignedZones,
+  allZones,
   selectedPoint,
   onPointSelect,
   className = "",
@@ -76,83 +80,148 @@ export function MapComponent({
     }
   }, [])
 
-  // Agregar zona de ventas
+  // Agregar todas las zonas de ventas
   useEffect(() => {
-    if (!map.current || !mapLoaded) return
+    if (!map.current || !mapLoaded || !allZones.length) return
 
-    // Agregar fuente de la zona
-    if (!map.current.getSource("sales-zone")) {
-      map.current.addSource("sales-zone", {
+    // Limpiar fuentes y capas existentes de zonas
+    if (map.current.getLayer('assigned-zones-fill')) map.current.removeLayer('assigned-zones-fill')
+    if (map.current.getLayer('assigned-zones-line')) map.current.removeLayer('assigned-zones-line')
+    if (map.current.getLayer('unassigned-zones-fill')) map.current.removeLayer('unassigned-zones-fill')
+    if (map.current.getLayer('unassigned-zones-line')) map.current.removeLayer('unassigned-zones-line')
+    if (map.current.getSource('assigned-zones')) map.current.removeSource('assigned-zones')
+    if (map.current.getSource('unassigned-zones')) map.current.removeSource('unassigned-zones')
+
+    // Crear IDs de zonas asignadas para comparación
+    const assignedZoneIds = new Set(assignedZones.map(zone => zone.id))
+    
+    // Separar zonas asignadas y no asignadas
+    const unassignedZones = allZones.filter(zone => !assignedZoneIds.has(zone.id))
+
+    // Agregar zonas asignadas (en color)
+    if (assignedZones.length > 0) {
+      map.current.addSource("assigned-zones", {
         type: "geojson",
         data: {
-          type: "Feature",
-          properties: {},
-          geometry: {
-            type: "Polygon",
-            coordinates: salesZone.coordinates,
-            // coordinates: salesZonesMock.zone1.coordinates, // Usar mock para pruebas
-          },
+          type: "FeatureCollection",
+          features: assignedZones.map(zone => ({
+            type: "Feature",
+            properties: { id: zone.id, name: zone.name },
+            geometry: {
+              type: "Polygon",
+              coordinates: zone.coordinates,
+            },
+          })),
         },
       })
 
-      // Agregar capa de relleno
+      // Capa de relleno para zonas asignadas
       map.current.addLayer({
-        id: "sales-zone-fill",
+        id: "assigned-zones-fill",
         type: "fill",
-        source: "sales-zone",
+        source: "assigned-zones",
         paint: {
           "fill-color": zoneColor,
           "fill-opacity": 0.2,
         },
       })
 
-      // Agregar capa de borde
+      // Capa de borde para zonas asignadas
       map.current.addLayer({
-        id: "sales-zone-line",
-        type: "line",
-        source: "sales-zone",
+        id: "assigned-zones-line",
+        type: "line", 
+        source: "assigned-zones",
         paint: {
           "line-color": zoneColor,
           "line-width": 2,
         },
       })
     }
-  }, [mapLoaded, salesZone, zoneColor])
 
-  // Efecto para actualizar el color de la zona cuando cambie
+    // Agregar zonas no asignadas (en gris)
+    if (unassignedZones.length > 0) {
+      map.current.addSource("unassigned-zones", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: unassignedZones.map(zone => ({
+            type: "Feature",
+            properties: { id: zone.id, name: zone.name },
+            geometry: {
+              type: "Polygon",
+              coordinates: zone.coordinates,
+            },
+          })),
+        },
+      })
+
+      // Capa de relleno para zonas no asignadas (gris)
+      map.current.addLayer({
+        id: "unassigned-zones-fill",
+        type: "fill",
+        source: "unassigned-zones",
+        paint: {
+          "fill-color": "#6B7280", // Gris
+          "fill-opacity": 0.15,
+        },
+      })
+
+      // Capa de borde para zonas no asignadas (gris)
+      map.current.addLayer({
+        id: "unassigned-zones-line",
+        type: "line",
+        source: "unassigned-zones", 
+        paint: {
+          "line-color": "#6B7280", // Gris
+          "line-width": 1,
+          "line-dasharray": [2, 2], // Línea punteada para distinguir
+        },
+      })
+    }
+  }, [mapLoaded, assignedZones, allZones, zoneColor])
+
+  // Efecto para actualizar el color de las zonas asignadas cuando cambie
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
     
-    if (map.current.getLayer('sales-zone-fill')) {
-      map.current.setPaintProperty('sales-zone-fill', 'fill-color', zoneColor);
+    if (map.current.getLayer('assigned-zones-fill')) {
+      map.current.setPaintProperty('assigned-zones-fill', 'fill-color', zoneColor);
     }
-    if (map.current.getLayer('sales-zone-line')) {
-      map.current.setPaintProperty('sales-zone-line', 'line-color', zoneColor);
+    if (map.current.getLayer('assigned-zones-line')) {
+      map.current.setPaintProperty('assigned-zones-line', 'line-color', zoneColor);
     }
   }, [zoneColor, mapLoaded]);
 
-  // Agregar puntos de venta
+  // Agregar puntos de venta (asignados y no asignados)
   useEffect(() => {
-    if (!map.current || !mapLoaded || !salesPoints.length) return
+    if (!map.current || !mapLoaded || !allPoints.length) return
 
-    console.log("Agregando marcadores:", salesPoints.length, "puntos")
+    console.log("Agregando marcadores:", allPoints.length, "puntos totales,", assignedPoints.length, "asignados")
 
     // Limpiar marcadores existentes
     markers.current.forEach(marker => marker.remove())
     markers.current = []
 
-    // Agregar nuevos marcadores
-    salesPoints.forEach((point) => {
+    // Crear IDs de puntos asignados para comparación
+    const assignedPointIds = new Set(assignedPoints.map(point => point.id))
+
+    // Agregar marcadores para todos los puntos
+    allPoints.forEach((point) => {
+      const isAssigned = assignedPointIds.has(point.id)
       // Crear elemento del marcador
       const el = document.createElement("div")
       el.className = "sales-point-marker"
       
-      // Estilos inline más específicos para móvil
+      // Estilos diferenciados para puntos asignados vs no asignados
+      const backgroundColor = isAssigned ? "#FFC300" : "#6B7280" // Amarillo para asignados, gris para no asignados
+      const borderColor = isAssigned ? "#0D1B2A" : "#4B5563"
+      const iconColor = isAssigned ? "#0D1B2A" : "#9CA3AF"
+      
       el.style.cssText = `
         width: 28px;
         height: 28px;
-        background-color: #FFC300;
-        border: 3px solid #0D1B2A;
+        background-color: ${backgroundColor};
+        border: 3px solid ${borderColor};
         border-radius: 50%;
         cursor: pointer;
         transition: box-shadow 0.2s ease, border-color 0.2s ease;
@@ -160,13 +229,14 @@ export function MapComponent({
         z-index: 1000;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         touch-action: manipulation;
+        opacity: ${isAssigned ? '1' : '0.7'};
       `
 
       // Agregar icono interno
       const icon = document.createElement("div")
       icon.innerHTML = `
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#0D1B2A"/>
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="${iconColor}"/>
         </svg>
       `
       el.appendChild(icon)
@@ -182,6 +252,7 @@ export function MapComponent({
           <div style="font-size: 14px; margin-bottom: 8px; font-weight: 600;">${point.name}</div>
           <div style="font-size: 12px; color: #666; margin-bottom: 8px;">${point.address}</div>
           <div style="font-size: 11px; color: #888; margin-bottom: 8px; text-transform: capitalize; background: #f0f0f0; padding: 2px 6px; border-radius: 12px; display: inline-block;">${point.type}</div>
+          ${isAssigned ? '' : '<div style="font-size: 11px; color: #dc2626; margin-bottom: 8px; font-weight: 600; background: #fee2e2; padding: 2px 6px; border-radius: 12px; display: inline-block;">⚠️ No asignado a tu zona</div>'}
           <div style="margin-top: 8px;">
             <a 
               href="https://www.google.com/maps/search/?api=1&query=${point.coordinates[1]},${point.coordinates[0]}" 
@@ -257,7 +328,7 @@ export function MapComponent({
       // Guardar referencia del marcador
       markers.current.push(marker)
     })
-  }, [mapLoaded, salesPoints, onPointSelect])
+  }, [mapLoaded, allPoints, assignedPoints, onPointSelect])
 
   // Centrar en punto seleccionado y resaltarlo
   useEffect(() => {
@@ -265,7 +336,7 @@ export function MapComponent({
 
     // Encontrar el marcador correspondiente
     const targetMarker = markers.current.find((marker, index) => {
-      const point = salesPoints[index]
+      const point = allPoints[index]
       return point && point.id === selectedPoint.id
     })
 
@@ -297,7 +368,7 @@ export function MapComponent({
       zoom: Math.max(map.current.getZoom(), 15),
       duration: 1000,
     })
-  }, [selectedPoint, salesPoints])
+  }, [selectedPoint, allPoints])
 
   return (
     <div className={`relative ${className}`}>

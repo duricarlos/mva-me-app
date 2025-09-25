@@ -9,8 +9,10 @@ interface SellerData {
     email: string
     active: boolean
   }
-  salesZones: SalesZone[]
-  salesPoints: SalesPoint[]
+  assignedSalesZones: SalesZone[]
+  allSalesZones: SalesZone[]
+  assignedSalesPoints: SalesPoint[]
+  allSalesPoints: SalesPoint[]
 }
 
 interface UseSellerDataReturn {

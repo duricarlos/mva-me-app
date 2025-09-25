@@ -5,7 +5,8 @@ import type { SalesPoint } from '@/lib/types'
 import { Input } from './ui/input'
 
 interface SalesPointsListProps {
-  salesPoints: SalesPoint[]
+  assignedPoints: SalesPoint[]
+  allPoints: SalesPoint[]
   selectedPoint?: SalesPoint | null
   onPointSelect?: (point: SalesPoint) => void
   showSearch?: boolean
@@ -23,10 +24,16 @@ const typeColors = {
   deposito: 'bg-purple-600 text-purple-100',
 }
 
-export function SalesPointsList({ salesPoints, selectedPoint, onPointSelect, showSearch = false }: SalesPointsListProps) {
+export function SalesPointsList({ assignedPoints, allPoints, selectedPoint, onPointSelect, showSearch = false }: SalesPointsListProps) {
   const [searchTerm, setSearchTerm] = useState('')
 
-  const filteredPoints = salesPoints.filter((point) => point.name.toLowerCase().includes(searchTerm.toLowerCase()) || point.address.toLowerCase().includes(searchTerm.toLowerCase()))
+  // Crear set de IDs asignados para comparación
+  const assignedPointIds = new Set(assignedPoints.map(point => point.id))
+
+  const filteredPoints = allPoints.filter((point: SalesPoint) => 
+    point.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    point.address.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
     <div className='flex flex-col h-full'>
@@ -34,43 +41,70 @@ export function SalesPointsList({ salesPoints, selectedPoint, onPointSelect, sho
         <div className='p-4 border-b border-gray-700 bg-gray-800/50 backdrop-blur-sm'>
           <Input type='text' placeholder='Buscar punto de venta...' value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className='w-full' />
           <p className='text-xs text-gray-400 mt-2'>
-            {filteredPoints.length} de {salesPoints.length} puntos
+            {filteredPoints.length} de {allPoints.length} puntos totales • {assignedPoints.length} asignados
           </p>
         </div>
       )}
 
       <div className='flex-1 overflow-y-auto'>
         <div className='p-4 space-y-3'>
-          {filteredPoints.map((point, index) => (
-            <div
-              key={point.id}
-              onClick={() => onPointSelect?.(point)}
-              className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${selectedPoint?.id === point.id ? 'border-yellow-400 bg-yellow-400/10 shadow-lg shadow-yellow-400/20' : 'border-gray-600 bg-gray-800/80 backdrop-blur-sm hover:border-gray-500 hover:bg-gray-750/80 hover:shadow-md'}`}
-              style={{
-                animationDelay: `${index * 50}ms`,
-              }}
-            >
-              <div className='flex items-start justify-between mb-3'>
-                <h3 className='font-semibold text-white text-sm leading-tight pr-2'>{point.name}</h3>
-                <span className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${typeColors[point.type]} shadow-sm`}>{typeLabels[point.type]}</span>
-              </div>
-              <p className='text-gray-400 text-sm leading-relaxed'>{point.address}</p>
-              <a href={`https://www.google.com/maps/search/?api=1&query=${point.coordinates[1]},${point.coordinates[0]}`} target='_blank' rel='noopener noreferrer' className='text-blue-400 text-xs mt-2 inline-flex items-center gap-1 hover:underline'>
-                📍 Abrir en Google Maps
-              </a>
-
-              {selectedPoint?.id === point.id && (
-                <div className='mt-3 pt-3 border-t border-yellow-400/20'>
-                  <div className='flex items-center text-yellow-400 text-xs'>
-                    <svg className='w-3 h-3 mr-1' fill='currentColor' viewBox='0 0 24 24'>
-                      <path d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' />
-                    </svg>
-                    Punto seleccionado
+          {filteredPoints.map((point: SalesPoint, index: number) => {
+            const isAssigned = assignedPointIds.has(point.id)
+            return (
+              <div
+                key={point.id}
+                onClick={() => onPointSelect?.(point)}
+                className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${
+                  selectedPoint?.id === point.id 
+                    ? 'border-yellow-400 bg-yellow-400/10 shadow-lg shadow-yellow-400/20' 
+                    : isAssigned
+                      ? 'border-gray-600 bg-gray-800/80 backdrop-blur-sm hover:border-gray-500 hover:bg-gray-750/80 hover:shadow-md'
+                      : 'border-gray-700/50 bg-gray-900/60 opacity-70 hover:opacity-80 hover:border-gray-600/50'
+                }`}
+                style={{
+                  animationDelay: `${index * 50}ms`,
+                }}
+              >
+                <div className='flex items-start justify-between mb-3'>
+                  <div className="flex items-center gap-2">
+                    <h3 className={`font-semibold text-sm leading-tight pr-2 ${isAssigned ? 'text-white' : 'text-gray-400'}`}>
+                      {point.name}
+                    </h3>
+                    {!isAssigned && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-600/50 text-gray-300 border border-gray-500/30">
+                        No asignado
+                      </span>
+                    )}
                   </div>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${typeColors[point.type]} shadow-sm ${!isAssigned ? 'opacity-60' : ''}`}>
+                    {typeLabels[point.type]}
+                  </span>
                 </div>
-              )}
-            </div>
-          ))}
+                <p className={`text-sm leading-relaxed ${isAssigned ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {point.address}
+                </p>
+                <a 
+                  href={`https://www.google.com/maps/search/?api=1&query=${point.coordinates[1]},${point.coordinates[0]}`} 
+                  target='_blank' 
+                  rel='noopener noreferrer' 
+                  className={`text-xs mt-2 inline-flex items-center gap-1 hover:underline ${isAssigned ? 'text-blue-400' : 'text-gray-500'}`}
+                >
+                  📍 Abrir en Google Maps
+                </a>
+
+                {selectedPoint?.id === point.id && (
+                  <div className='mt-3 pt-3 border-t border-yellow-400/20'>
+                    <div className='flex items-center text-yellow-400 text-xs'>
+                      <svg className='w-3 h-3 mr-1' fill='currentColor' viewBox='0 0 24 24'>
+                        <path d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z' />
+                      </svg>
+                      Punto seleccionado
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
 
           {filteredPoints.length === 0 && (
             <div className='text-center py-8'>

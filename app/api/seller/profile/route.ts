@@ -38,9 +38,15 @@ export async function GET() {
         )
       }
 
+      // Obtener todas las zonas y puntos del sistema para mostrar los no asignados en gris
+      const allZones = await StrapiService.getAllSalesZones()
+      const allPoints = await StrapiService.getAllSalesPoints()
+      
       // Transformar datos para respuesta
-      const salesZones = profile.sales_zones.map(transformStrapiSalesZone)
-      const salesPoints = profile.sales_points.map(transformStrapiSalesPoint)
+      const assignedSalesZones = profile.sales_zones.map(transformStrapiSalesZone)
+      const allSalesZones = allZones.map(transformStrapiSalesZone)
+      const assignedSalesPoints = profile.sales_points.map(transformStrapiSalesPoint)
+      const allSalesPoints = allPoints.map(transformStrapiSalesPoint)
 
       return NextResponse.json({
         profile: {
@@ -49,8 +55,10 @@ export async function GET() {
           email: profile.email,
           active: profile.active
         },
-        salesZones,
-        salesPoints
+        assignedSalesZones,
+        allSalesZones,
+        assignedSalesPoints,
+        allSalesPoints
       })
     }
 
@@ -84,9 +92,15 @@ export async function GET() {
       )
     }
 
+    // Obtener todas las zonas y puntos del sistema para mostrar los no asignados en gris
+    const allZones = await StrapiService.getAllSalesZones()
+    const allPoints = await StrapiService.getAllSalesPoints()
+    
     // Transformar datos para respuesta
-    const salesZones = profile.sales_zones.map(transformStrapiSalesZone)
-    const salesPoints = profile.sales_points.map(transformStrapiSalesPoint)
+    const assignedSalesZones = profile.sales_zones.map(transformStrapiSalesZone)
+    const allSalesZones = allZones.map(transformStrapiSalesZone)
+    const assignedSalesPoints = profile.sales_points.map(transformStrapiSalesPoint)
+    const allSalesPoints = allPoints.map(transformStrapiSalesPoint)
 
     return NextResponse.json({
       profile: {
@@ -95,8 +109,10 @@ export async function GET() {
         email: profile.email,
         active: profile.active
       },
-      salesZones,
-      salesPoints
+      assignedSalesZones,
+      allSalesZones,
+      assignedSalesPoints,
+      allSalesPoints
     })
 
   } catch (error) {

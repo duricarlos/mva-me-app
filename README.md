@@ -6,7 +6,9 @@ Una aplicación web completa para la gestión de vendedores y puntos de venta co
 
 ### 🗺️ **Sistema de Mapas Interactivos**
 
-- **Visualización de zonas asignadas** con polígonos GeoJSON
+- **Visualización de TODAS las zonas** del sistema:
+  - ✅ **Zonas asignadas**: Renderizadas en color según estado de ubicación
+  - ✅ **Zonas no asignadas**: Mostradas en gris con bordes punteados
 - **Puntos de venta interactivos** con información detallada
 - **Mapas responsive** optimizados para móvil y escritorio
 - **Controles de navegación** personalizados
@@ -17,10 +19,15 @@ Una aplicación web completa para la gestión de vendedores y puntos de venta co
 - **Solicitud automática de permisos** de ubicación del navegador
 - **Verificación cada 5 segundos** si el vendedor está dentro de su zona
 - **Algoritmo de geofencing** usando ray casting para polígonos complejos
+- **Detección de zonas ajenas**: Identifica si el usuario está en una zona no asignada a él
 - **Feedback visual en tiempo real**:
   - 🟢 **Verde**: Dentro de la zona asignada
-  - 🔴 **Rojo**: Fuera de la zona asignada
+  - 🔴 **Rojo**: Fuera de la zona asignada o en zona ajena  
   - 🟡 **Amarillo**: Verificando ubicación
+- **Sistema de alertas avanzado**:
+  - ⚠️ **Banner de alerta roja** cuando está en zona ajena
+  - 📍 **Indicadores específicos** con nombres de zonas
+  - 🔔 **Notificaciones animadas** para máxima visibilidad
 - **Cambio de color dinámico** de la zona en el mapa
 - **Indicadores de estado** con timestamps de última verificación
 - **Manejo de errores** de geolocalización con mensajes informativos
@@ -33,13 +40,24 @@ Una aplicación web completa para la gestión de vendedores y puntos de venta co
 - ✅ **Asignación de zonas** y puntos de venta específicos
 - ✅ **Control de acceso** basado en roles y permisos
 
-### 🎯 **Puntos de Venta**
+### 🎯 **Sistema de Puntos de Venta Avanzado**
 
-- ✅ **Lista detallada** de puntos asignados al vendedor
-- ✅ **Información completa**: nombre, dirección, tipo, coordenadas
-- ✅ **Clasificación por tipo**: Distribuidor, Ferretería, Depósito
-- ✅ **Búsqueda y filtrado** de puntos (versión escritorio)
-- ✅ **Selección interactiva** con sincronización mapa-lista
+- **Visualización de TODOS los puntos** del sistema:
+  - ✅ **Puntos asignados**: Renderizados en color completo con total funcionalidad
+  - ✅ **Puntos no asignados**: Mostrados en gris con opacidad reducida
+- **Detección de proximidad inteligente**:
+  - 📍 **Radio de 100 metros**: Detecta cuando está cerca de puntos no asignados
+  - ⚠️ **Alertas de proximidad**: Banner naranja cuando está cerca de punto ajeno
+  - 📊 **Información de distancia**: Muestra distancia exacta en metros
+- **Lista detallada** con diferenciación visual:
+  - ✅ **Información completa**: nombre, dirección, tipo, coordenadas
+  - ✅ **Etiquetas visuales**: "No asignado" para puntos ajenos
+  - ✅ **Clasificación por tipo**: Distribuidor, Ferretería, Depósito
+  - ✅ **Búsqueda y filtrado** de puntos (versión escritorio)
+  - ✅ **Selección interactiva** con sincronización mapa-lista
+- **Indicadores de estado**:
+  - 🟢 **Contador inteligente**: "X de Y puntos totales • Z asignados"
+  - 📱 **Alertas móviles**: Indicador de proximidad en vista móvil
 
 ### 📱 **Interfaz de Usuario**
 
